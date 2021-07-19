@@ -21,7 +21,7 @@
 EXPLAIN SELECT * FROM tb_item WHERE cid IN (SELECT id FROM tb_item_cat)
 ```
 
-![img](https://www.funtl.com/assets1/Lusifer_20190210233927.png)
+![img](./img/Lusifer_20190210233927.png)
 
 - **id：** SELECT 识别符。这是 SELECT 的查询序列号
 
