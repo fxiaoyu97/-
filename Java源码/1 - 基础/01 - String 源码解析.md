@@ -1,6 +1,4 @@
-## String
-
-> JDK 版本：8
+>  JDK 版本：8
 
 ### 1.1 不变性
 
@@ -33,7 +31,7 @@ s = s.replace("b","d");
 
 ### 1.2 字符串乱码
 
-字符串乱码往往是转换过程中，字符编码不统一造成的。
+字符串乱码的根源主要是两个：字符集不支持复杂汉字和二进制进行转化时字符集不匹配。
 
 解决办法：所有用到编码的地方指定编码方式，使用 `UTF-8`。(`ISO-8859-1`对中文的支持有限，所以包含中文的时候不建议使用`ISO-8859-1`)
 
@@ -169,13 +167,22 @@ public String replaceFirst(String regex, String replacement) {    return Pattern
 `split`方法，该方法有两个参数，第一个参数是我们拆分的标准字符，第二个参数是一个 int 值`(limit)`，用来限制我们需要拆分几个元素。如果 limit 比实际能拆分的个数小，按照 limit 的个数进行拆分。
 
 ```java
-String  s = "abb:dce:fbb";// 默认情况下limit为0，结果：[abb, dce, fbb]System.out.println(Arrays.toString(s.split(":")));// 结果：[abb, dce:fbb]System.out.println(Arrays.toString(s.split(":",2)));// 结果：[abb, dce, fbb]System.out.println(Arrays.toString(s.split(":",-1)));
+String  s = "abb:dce:fbb";
+
+// 默认情况下limit为0，结果：[abb, dce,fbb]
+System.out.println(Arrays.toString(s.split(":")));
+// 结果：[abb, dce:fbb]
+System.out.println(Arrays.toString(s.split(":",2)));
+// 结果：[abb, dce, fbb]
+System.out.println(Arrays.toString(s.split(":",-1)));
 ```
 
 如果字符串中存在空值，空值也会被拆分出来，但是**最后的空值不管出现几个都不会出现。**
 
 ```java
-String  s = "abb:dce:fbbb";// 输出：[a, , :dce:f]System.out.println(Arrays.toString(s.split("b")));
+String  s = "abb:dce:fbbb";
+// 输出：[a, , :dce:f]
+System.out.println(Arrays.toString(s.split("b")));
 ```
 
 ### 1.7 合并`(join)`
