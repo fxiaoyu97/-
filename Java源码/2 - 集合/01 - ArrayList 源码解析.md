@@ -1,6 +1,6 @@
-## 整体架构
+## 基础介绍
 
-ArrayList 整体架构就是一个数组结构：
+ArrayList 底层数据结构就是一个数组：
 
 1. index 表示数组下标，从 0 开始计数，elementDatda 表示数组本身
 2. `DEFAULT_CAPACITY` 表示**数组的初始化大小，默认是10**
@@ -61,14 +61,14 @@ public ArrayList(Collection<? extends E> c) {
 }
 ```
 
-从源码中可以得到一下几点：
+从源码中可以得到以下几点：
 
-1. ArrayList 无参构造器初始化时，**默认大小是空数组**，数组大小 10 时在第一次 add 的时候扩容的数组值。
+1. ArrayList 无参构造器初始化时，**默认大小是空数组**，数组大小 10 是在第一次 add 的时候扩容的数组值。
 2. 指定数据初始化的时候，在传入的数据为空时，依旧会初始化为空数组。当传入的集合类型为ArrayList 时，elementData 会直接使用 toArray 生成的数组。
 
 ### 2、新增和扩容
 
-添加元素是进行了两步操作：
+添加元素时进行了两步操作：
 
 1. 判断是否需要扩容
 2. elementData 数组赋值，这里是**非线程安全的**
@@ -250,13 +250,13 @@ private void fastRemove(int index) {
 3. 删除的时候，只做了 index 是否大于 size 的判断，index 为负值时在数组取值时抛出异常。小于 0 和大于 size 时的抛出异常不同。
 4. 元素相等的判断在不为 null 的情况下使用 equals 方法，自定义类型元素的删除要注意 equals 的具体实现。
 
-### 5、迭代器
+### 5、单向迭代器
 
 实现`java.util.Iterator`接口类，迭代器中定义的几个参数：
 
 ```java
 int cursor;// 迭代过程中，下一个元素的位置，默认从 0 开始。
-int lastRet = -1; // 新增场景：表示上一次迭代过程中，索引的位置；删除场景：为 -1。
+int lastRet = -1; // 最后一次迭代时返回的值的索引位置；默认为 -1。
 int expectedModCount = modCount;// expectedModCount 表示迭代过程中，期望的版本号；modCount 表示数组实际的版本号。
 ```
 
@@ -302,7 +302,7 @@ final void checkForComodification() {
 }
 ```
 
-源码这一块里面，next 做了两件事，意识判断能不能继续迭代，而是找到需要迭代的值，并为下次迭代做准备。
+源码这一块里面，next 做了两件事，第一判断能不能继续迭代，第二找到需要迭代的值，并为下次迭代做准备。
 
 这里面有个很有意思的点，在判断版本号和 i 是否超过元素个数以后，又做了一次是并发修改的判断。新建了一个本地变量，将地址指向 ArrayList 的数组 elementData。此时 elementData 如果修改地址对取值已经没什么影响了。然后判断 i 是否超过数组长度，保证代码正常运行能取值，但是多线程的情况下，取值不一定是对的。
 
@@ -330,10 +330,58 @@ public void remove() {
 
 这里有两点需要注意的：
 
-+ `lastRet = -1`的操作目的，时防止重复删除
++ `lastRet = -1`的操作是为了防止重复删除
 + 删除元素成功，数组的 modCount 会改变，需要同步修改 expectedModCount 的值。
 
-### 6、线程安全
+### 6、双向迭代器
+
+除了对`java.util.Iterator`接口类的实现，ArrayList 还有一个双向迭代器的实现，这个类在继承`Iterator`接口实现类的基础上，实现了`java.util.ListIterator`接口。因此又增加了几个逆向迭代方法：
+
++ `hasPrevious` 前面还有没有值可以迭代，实现代码类似`hasNext` 
++ `nextIndex` 正向迭代时，下一个迭代的位置
++ `previousIndex` 逆向迭代时，下一个迭代的位置
++ `previous` 逆向迭代时，下一个迭代的值，实现类似`next`
++ `set(E e)` 修改当前迭代位置上的元素
++ `add(E e)` 在当前迭代的位置上添加一个元素
+
+双向迭代器的获取方式，一种是调用`listIterator() `方法直接获取，默认起始位置是 0 ；另一种是调用`listIterator(int index)`方法指定迭代器的起始位置
+
+```java
+public int nextIndex() {
+  	return cursor;
+}
+
+public int previousIndex() {
+  	return cursor - 1;
+}
+// 修改指定迭代位置上的值
+public void set(E e) {
+  if (lastRet < 0)
+    throw new IllegalStateException();
+  checkForComodification();
+
+  try {
+    ArrayList.this.set(lastRet, e);
+  } catch (IndexOutOfBoundsException ex) {
+    throw new ConcurrentModificationException();
+  }
+}
+// 在迭代的位置上新增一个值
+public void add(E e) {
+  checkForComodification();
+  try {
+    int i = cursor;
+    ArrayList.this.add(i, e);
+    cursor = i + 1;
+    lastRet = -1;
+    expectedModCount = modCount;
+  } catch (IndexOutOfBoundsException ex) {
+    throw new ConcurrentModificationException();
+  }
+}
+```
+
+### 7、线程安全
 
 ArrayList 是线程不安全的，是因为 ArrayList 自身的 elementData、size、modConut 在进行各种操作时，都没有加锁。
 
@@ -341,7 +389,7 @@ ArrayList 是线程不安全的，是因为 ArrayList 自身的 elementData、si
 
 ### 1、为什么引入 modCount 这个变量？
 
-引入 modCount 变量是为了防止遍历集合时，判断是否有并发操作改变数据的标志，以便做出对应的处理。
+引入 modCount 变量是为了在遍历集合时，判断是否有并发操作改变数据的标志，在快速失败原理上有使用。
 
 ### 2、为什么在添加数据时扩容10，而不是初始化的时候？
 
@@ -393,3 +441,40 @@ list.remove(new Integer(3));
 所以在遍历过程中对原集合所作的修改并不能被迭代器检测到，所以不会触发 `ConcurrentModificationException`。
 
 **场景：**java.util.concurrent 包下的容器都是安全失败，可以在多线程下并发使用和修改。
+
+### 7、ArrayList 的扩容为什么是 1.5 倍？
+
+**扩容参数为 (1, 2) 之间比较好**。
+
+假设扩容参数为 x，当 `x >= 2` 时，每次扩展的新尺寸必然刚好大于之前分配的总和
+$$
+c⋅(1+x+x^2+⋯+x^{n−2}) ≤ c⋅x^n
+$$
+也就是说之前的内存空间都不能进行复用。
+
+```
+IF x = 2 :
+caps: 1 2 4 8 16 32
+---
+1
+ 12
+   1234
+       12345678
+               123456789012345
+                              12345678901234567890123456789012
+
+IF x = 1.5 :
+caps: 1 2 3 4 6 9 13 19 28
+---
+1
+ 12
+   123
+      1234
+123456
+      123456789
+               1234567890123
+                            1234567890123456789
+1234567890123456789012345678
+```
+
+可以看到，k = 1.5 在几次扩展之后，可以重用之前的内存空间。
