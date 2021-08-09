@@ -5,8 +5,8 @@ LinkedList 底层数据结构是一个双向链表：
 + 链表的每个节点叫做 Node，在 Node 中，prev属性表示前一个节点的位置，next 属性表示后一个节点的位置
 + first 是双向链表的头节点，它的前一个节点是`null`
 + last 是双向链表的尾节点，它的后一个节点是`null`
-+ 当链表中没有数据是，first 和 last 是同一个节点，前后指向都是`null`
-+ 因为是个双向链表，只要机器内存足够大，没有大小限制
++ 当链表中没有数据时，first 和 last 是同一个节点，前后指向都是`null`
++ 因为是个双向链表，只要机器内存足够大，没有大小限制，但是**变量`size`是有大小限制的**
 
 链表中 Node 的源码实现：
 
@@ -31,7 +31,6 @@ private static class Node<E> {
 + `add`方法默认是从尾部开始添加，调用内部的`linkLast`
 + `addFirst`方法是从头部开始添加，调用内部的`linkFirst`
 + `add(int index, E element)`可以在 index 位置前面添加一个元素，`index == size`时在最后面添加
-+ 添加的过程中
 
 **源码**
 
